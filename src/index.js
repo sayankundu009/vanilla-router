@@ -1,6 +1,6 @@
 import "./components/view";
 import "./components/link";
-import { ROUTER_PROPERTY_NAME, ROUTER_VIEW_PROPERTY_NAME, tryCatch, convertScriptsToIife, generateQueryString} from "./utils"
+import { ROUTER_PROPERTY_NAME, ROUTER_VIEW_PROPERTY_NAME, tryCatch, convertScriptsToIife, generateQueryString, pathToRegex} from "./utils"
 
 import HashNavigator from "./navigators/hash"
 
@@ -68,13 +68,18 @@ class VanillaRouter {
 
             if(pageName){
                 const template = this.routerTemplates.get(pageName);
-                const pathRegex = new RegExp("^" + path.replace(/:[^\s/]+/g, '([\\w-]+)') + "$");
+                const fast_star = path === '*';
+
+                const pathRegex = !fast_star ?
+                pathToRegex(path) 
+                : null;
 
                 this.routerComponents.set(path, {
                     path,
                     pathRegex,
                     template,
-                    alise: pageName
+                    alise: pageName,
+                    fast_star
                 });
             } 
         });
@@ -94,12 +99,15 @@ class VanillaRouter {
 
     getRouteMatch(path){
         for(let [_ , route] of this.routerComponents){
+
+            if(route.fast_star) continue;
+
             if(path.match(route.pathRegex)){
                 return route;
             }
         }
 
-        return null;
+        return this.routerComponents.get("*") || null;
     }
 
     show(path = null){
@@ -139,11 +147,11 @@ class VanillaRouter {
     }
 
     onRouteChange(){
-        console.log(this.$navigator.$route)
-
-        const { path } = this.$navigator.$route
+        const path = this.$navigator.currentPath()
 
         this.show(path);
+
+        console.log(this.$navigator.$route)
     }
 
     getRouterProperties(){

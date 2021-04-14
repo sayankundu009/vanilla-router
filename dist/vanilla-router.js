@@ -3,7 +3,7 @@
 
     const ROUTER_PROPERTY_NAME = "__vanilla_router__";
     const ROUTER_VIEW_PROPERTY_NAME = "__vanilla_router_view__";
-
+    const PATH_PARAM_REGEX = new RegExp(/:[^\s/]+/g);
 
     function tryCatch(callback){
         try{
@@ -39,6 +39,10 @@
 
     function isNumeric(value) {
         return /^-?\d+$/.test(value);
+    }
+
+    function pathToRegex(path){
+     return new RegExp("^" + path.replace(/:[^\s/]+/g, '((?:[^\/]+?))') + "$")
     }
 
     class RouterView extends HTMLElement{
@@ -169,10 +173,11 @@
             const activeRoute = this.getRouter().activeRoute;
             const params = {};
 
-            if(!activeRoute) return params;
+            if(!activeRoute || activeRoute.fast_star) return params;
 
-            let pathRegex = new RegExp("^" + activeRoute.path.replace(/:[^\s/]+/g, '([\\w-]+)') + "$");
-            const paramRegex = new RegExp(/:[^\s/]+/g);
+            const pathRegex = pathToRegex(activeRoute.path);
+
+            const paramRegex = PATH_PARAM_REGEX;
 
             let routeMatch = this.currentPath().match(pathRegex);
             let paramKeys = activeRoute.path.match(paramRegex);
@@ -289,13 +294,18 @@
 
                 if(pageName){
                     const template = this.routerTemplates.get(pageName);
-                    const pathRegex = new RegExp("^" + path.replace(/:[^\s/]+/g, '([\\w-]+)') + "$");
+                    const fast_star = path === '*';
+
+                    const pathRegex = !fast_star ?
+                    pathToRegex(path) 
+                    : null;
 
                     this.routerComponents.set(path, {
                         path,
                         pathRegex,
                         template,
-                        alise: pageName
+                        alise: pageName,
+                        fast_star
                     });
                 } 
             });
@@ -315,12 +325,15 @@
 
         getRouteMatch(path){
             for(let [_ , route] of this.routerComponents){
+
+                if(route.fast_star) continue;
+
                 if(path.match(route.pathRegex)){
                     return route;
                 }
             }
 
-            return null;
+            return this.routerComponents.get("*") || null;
         }
 
         show(path = null){
@@ -360,11 +373,11 @@
         }
 
         onRouteChange(){
-            console.log(this.$navigator.$route);
-
-            const { path } = this.$navigator.$route;
+            const path = this.$navigator.currentPath();
 
             this.show(path);
+
+            console.log(this.$navigator.$route);
         }
 
         getRouterProperties(){

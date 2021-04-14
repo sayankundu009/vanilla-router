@@ -1,4 +1,4 @@
-import { ROUTER_PROPERTY_NAME, isNumeric} from "../utils"
+import { ROUTER_PROPERTY_NAME, isNumeric, pathToRegex, PATH_PARAM_REGEX} from "../utils"
 
 export default class HashNavigator{
     constructor(){
@@ -45,10 +45,11 @@ export default class HashNavigator{
         const activeRoute = this.getRouter().activeRoute
         const params = {}
 
-        if(!activeRoute) return params;
+        if(!activeRoute || activeRoute.fast_star) return params;
 
-        let pathRegex = new RegExp("^" + activeRoute.path.replace(/:[^\s/]+/g, '([\\w-]+)') + "$")
-        const paramRegex = new RegExp(/:[^\s/]+/g)
+        const pathRegex = pathToRegex(activeRoute.path);
+
+        const paramRegex = PATH_PARAM_REGEX;
 
         let routeMatch = this.currentPath().match(pathRegex);
         let paramKeys = activeRoute.path.match(paramRegex)

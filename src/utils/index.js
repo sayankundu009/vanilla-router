@@ -1,6 +1,6 @@
 export const ROUTER_PROPERTY_NAME = "__vanilla_router__";
 export const ROUTER_VIEW_PROPERTY_NAME = "__vanilla_router_view__";
-
+export const PATH_PARAM_REGEX = new RegExp(/:[^\s/]+/g);
 
 export function tryCatch(callback){
     try{
@@ -36,4 +36,8 @@ export function generateQueryString(query){
 
 export function isNumeric(value) {
     return /^-?\d+$/.test(value);
+}
+
+export function pathToRegex(path){
+ return new RegExp("^" + path.replace(/:[^\s/]+/g, '((?:[^\/]+?))') + "$")
 }
